@@ -1,44 +1,128 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flashcards</title>
+
   <style>
-    body { font-family: Arial; text-align: center; margin-top: 50px; }
-    .card { font-size: 30px; border: 1px solid black; padding: 50px; cursor: pointer; }
-    button { margin: 10px; padding: 10px 20px; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f5f5;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    .card {
+      margin: 40px auto;
+      padding: 40px;
+      width: 80%;
+      max-width: 400px;
+      background: white;
+      border-radius: 20px;
+      font-size: 28px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      cursor: pointer;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .buttons {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 15px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .know {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .dontknow {
+      background: #f44336;
+      color: white;
+    }
+
+    .switch {
+      background: #2196F3;
+      color: white;
+    }
+
+    .progress {
+      margin-top: 10px;
+      color: #555;
+    }
   </style>
 </head>
+
 <body>
 
 <h1>Flashcards</h1>
+
 <div class="card" onclick="flipCard()">Loading...</div>
-<br>
-<button onclick="know()">I knew it</button>
-<button onclick="dontKnow()">I didn’t know it</button>
+
+<div class="buttons">
+  <button class="know" onclick="know()">Ich wusste es</button>
+  <button class="dontknow" onclick="dontKnow()">Nochmal</button>
+</div>
+
+<div class="buttons">
+  <button class="switch" onclick="switchLang()">Sprache wechseln</button>
+</div>
+
+<div class="progress"></div>
 
 <script>
 let words = [];
 let current = 0;
 let flipped = false;
+let showGerman = true;
 
-const sheetURL = "https://opensheet.elk.sh/1-4SbLM2LfQDyAHG3OI_FkWA_u05-k3xbRxWobGRp-XI/Tabellenblatt1";
+const sheetURL = "https://opensheet.elk.sh/1-4SbLM2LfQDyAHG3OI_FkWA_u05-k3xbRxWobGRp-XI/Sheet1";
 
 fetch(sheetURL)
   .then(res => res.json())
   .then(data => {
     words = data;
-    showCard();
+    nextCard();
   });
 
 function showCard() {
+  if (words.length === 0) {
+    document.querySelector(".card").innerText = "Fertig 🎉";
+    return;
+  }
+
   flipped = false;
-  document.querySelector(".card").innerText = words[current].German;
+  const word = words[current];
+
+  document.querySelector(".card").innerText =
+    showGerman ? word.German : word.Italian;
+
+  updateProgress();
 }
 
 function flipCard() {
+  const word = words[current];
+
   flipped = !flipped;
-  document.querySelector(".card").innerText =
-    flipped ? words[current].Italian : words[current].German;
+
+  document.querySelector(".card").innerText = flipped
+    ? (showGerman ? word.Italian : word.German)
+    : (showGerman ? word.German : word.Italian);
 }
 
 function know() {
@@ -52,11 +136,23 @@ function dontKnow() {
 
 function nextCard() {
   if (words.length === 0) {
-    document.querySelector(".card").innerText = "Done!";
+    document.querySelector(".card").innerText = "Fertig 🎉";
+    document.querySelector(".progress").innerText = "";
     return;
   }
+
   current = Math.floor(Math.random() * words.length);
   showCard();
+}
+
+function switchLang() {
+  showGerman = !showGerman;
+  showCard();
+}
+
+function updateProgress() {
+  document.querySelector(".progress").innerText =
+    words.length + " Karten übrig";
 }
 </script>
 
