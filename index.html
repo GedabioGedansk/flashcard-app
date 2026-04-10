@@ -1,122 +1,78 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flashcards</title>
-
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f5f5f5;
-      text-align: center;
-    }
-
-    h1 {
-      margin-top: 20px;
-    }
-
-    .card {
-      margin: 40px auto;
-      padding: 40px;
-      width: 80%;
-      max-width: 400px;
-      background: white;
-      border-radius: 20px;
-      font-size: 28px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      cursor: pointer;
-      min-height: 120px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .buttons {
-      margin-top: 20px;
-    }
-
-    button {
-      padding: 15px 20px;
-      margin: 10px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .know {
-      background: #4CAF50;
-      color: white;
-    }
-
-    .dontknow {
-      background: #f44336;
-      color: white;
-    }
-
-    .switch {
-      background: #2196F3;
-      color: white;
-    }
-
-    .progress {
-      margin-top: 10px;
-      color: #555;
-    }
-  </style>
-</head>
-
-<body>
-
-<h1>Flashcards</h1>
-
-<div class="card" onclick="flipCard()">Loading...</div>
-
-<div class="buttons">
-  <button class="know" onclick="know()">Ich wusste es</button>
-  <button class="dontknow" onclick="dontKnow()">Nochmal</button>
-</div>
-
-<div class="buttons">
-  <button class="switch" onclick="switchLang()">Sprache wechseln</button>
-</div>
-
-<div class="progress"></div>
-
 <script>
 let words = [];
 let current = 0;
 let flipped = false;
 let showGerman = true;
 
-const sheetURL = "https://opensheet.elk.sh/1-4SbLM2LfQDyAHG3OI_FkWA_u05-k3xbRxWobGRp-XI/Tabellenblatt1";
+const sheetURL =
+  "https://opensheet.elk.sh/1-4SbLM2LfQDyAHG3OI_FkWA_u05-k3xbRxWobGRp-XI/Tabellenblatt1";
+
+const STORAGE_KEY = "flashcards_progress";
 
 fetch(sheetURL)
   .then(res => res.json())
   .then(data => {
-    words = data;
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+
+    words = data.map((w, index) => {
+      return {
+        id: index,
+        German: w.German,
+        Italian: w.Italian,
+        nextReview: saved[index]?.nextReview || 0,
+        repetitions: saved[index]?.repetitions || 0
+      };
+    });
+
     nextCard();
   });
 
+function saveProgress() {
+  const data = {};
+  words.forEach(w => {
+    data[w.id] = {
+      nextReview: w.nextReview,
+      repetitions: w.repetitions
+    };
+  });
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function getNow() {
+  return new Date().getTime();
+}
+
+function get7Days() {
+  return getNow() + 7 * 24 * 60 * 60 * 1000;
+}
+
+function getDueWords() {
+  return words.filter(w => w.repetitions < 2 && w.nextReview <= getNow());
+}
+
 function showCard() {
-  if (words.length === 0) {
-    document.querySelector(".card").innerText = "Fertig 🎉";
+  const due = getDueWords();
+
+  if (due.length === 0) {
+    document.querySelector(".card").innerText = "Heute fertig 🎉";
+    document.querySelector(".progress").innerText = "";
     return;
   }
 
+  const word = due[current % due.length];
+
   flipped = false;
-  const word = words[current];
 
   document.querySelector(".card").innerText =
     showGerman ? word.German : word.Italian;
 
-  updateProgress();
+  updateProgress(due.length);
 }
 
 function flipCard() {
-  const word = words[current];
+  const due = getDueWords();
+  const word = due[current % due.length];
 
   flipped = !flipped;
 
@@ -126,7 +82,20 @@ function flipCard() {
 }
 
 function know() {
-  words.splice(current, 1);
+  const due = getDueWords();
+  const word = due[current % due.length];
+
+  word.repetitions++;
+
+  if (word.repetitions >= 2) {
+    // MASTERED → remove forever
+    word.nextReview = Infinity;
+  } else {
+    // first success → review in 7 days
+    word.nextReview = get7Days();
+  }
+
+  saveProgress();
   nextCard();
 }
 
@@ -135,13 +104,14 @@ function dontKnow() {
 }
 
 function nextCard() {
-  if (words.length === 0) {
-    document.querySelector(".card").innerText = "Fertig 🎉";
-    document.querySelector(".progress").innerText = "";
+  const due = getDueWords();
+
+  if (due.length === 0) {
+    showCard();
     return;
   }
 
-  current = Math.floor(Math.random() * words.length);
+  current = Math.floor(Math.random() * due.length);
   showCard();
 }
 
@@ -150,11 +120,8 @@ function switchLang() {
   showCard();
 }
 
-function updateProgress() {
+function updateProgress(count) {
   document.querySelector(".progress").innerText =
-    words.length + " Karten übrig";
+    count + " Karten heute";
 }
 </script>
-
-</body>
-</html>
