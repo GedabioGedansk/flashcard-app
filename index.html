@@ -1,3 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcards</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f5f5f5;
+      text-align: center;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    .card {
+      margin: 40px auto;
+      padding: 40px;
+      width: 80%;
+      max-width: 420px;
+      background: white;
+      border-radius: 20px;
+      font-size: 28px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      cursor: pointer;
+      min-height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .buttons {
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 14px 18px;
+      margin: 8px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .know {
+      background: #4CAF50;
+      color: white;
+    }
+
+    .dontknow {
+      background: #f44336;
+      color: white;
+    }
+
+    .switch {
+      background: #2196F3;
+      color: white;
+    }
+
+    .progress {
+      margin-top: 10px;
+      color: #555;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Flashcards</h1>
+
+<div class="card" onclick="flipCard()">Loading...</div>
+
+<div class="buttons">
+  <button class="know" onclick="know()">Ich wusste es</button>
+  <button class="dontknow" onclick="dontKnow()">Nochmal</button>
+</div>
+
+<div class="buttons">
+  <button class="switch" onclick="switchLang()">Sprache wechseln</button>
+</div>
+
+<div class="progress"></div>
+
 <script>
 let words = [];
 let current = 0;
@@ -9,6 +98,7 @@ const sheetURL =
 
 const STORAGE_KEY = "flashcards_progress";
 
+// Load data
 fetch(sheetURL)
   .then(res => res.json())
   .then(data => {
@@ -39,16 +129,19 @@ function saveProgress() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-function getNow() {
+function now() {
   return new Date().getTime();
 }
 
-function get7Days() {
-  return getNow() + 7 * 24 * 60 * 60 * 1000;
+function in7Days() {
+  return now() + 7 * 24 * 60 * 60 * 1000;
 }
 
+// only words not mastered + due
 function getDueWords() {
-  return words.filter(w => w.repetitions < 2 && w.nextReview <= getNow());
+  return words.filter(w =>
+    w.repetitions < 2 && w.nextReview <= now()
+  );
 }
 
 function showCard() {
@@ -72,8 +165,9 @@ function showCard() {
 
 function flipCard() {
   const due = getDueWords();
-  const word = due[current % due.length];
+  if (due.length === 0) return;
 
+  const word = due[current % due.length];
   flipped = !flipped;
 
   document.querySelector(".card").innerText = flipped
@@ -83,16 +177,18 @@ function flipCard() {
 
 function know() {
   const due = getDueWords();
+  if (due.length === 0) return;
+
   const word = due[current % due.length];
 
   word.repetitions++;
 
   if (word.repetitions >= 2) {
-    // MASTERED → remove forever
+    // mastered forever
     word.nextReview = Infinity;
   } else {
-    // first success → review in 7 days
-    word.nextReview = get7Days();
+    // review in 7 days
+    word.nextReview = in7Days();
   }
 
   saveProgress();
@@ -125,3 +221,6 @@ function updateProgress(count) {
     count + " Karten heute";
 }
 </script>
+
+</body>
+</html>
