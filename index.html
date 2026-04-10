@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Flashcards</title>
+  <style>
+    body { font-family: Arial; text-align: center; margin-top: 50px; }
+    .card { font-size: 30px; border: 1px solid black; padding: 50px; cursor: pointer; }
+    button { margin: 10px; padding: 10px 20px; }
+  </style>
+</head>
+<body>
+
+<h1>Flashcards</h1>
+<div class="card" onclick="flipCard()">Loading...</div>
+<br>
+<button onclick="know()">I knew it</button>
+<button onclick="dontKnow()">I didn’t know it</button>
+
+<script>
+let words = [];
+let current = 0;
+let flipped = false;
+
+const sheetURL = "PASTE_YOUR_API_LINK_HERE";
+
+fetch(sheetURL)
+  .then(res => res.json())
+  .then(data => {
+    words = data;
+    showCard();
+  });
+
+function showCard() {
+  flipped = false;
+  document.querySelector(".card").innerText = words[current].German;
+}
+
+function flipCard() {
+  flipped = !flipped;
+  document.querySelector(".card").innerText =
+    flipped ? words[current].Italian : words[current].German;
+}
+
+function know() {
+  words.splice(current, 1);
+  nextCard();
+}
+
+function dontKnow() {
+  nextCard();
+}
+
+function nextCard() {
+  if (words.length === 0) {
+    document.querySelector(".card").innerText = "Done!";
+    return;
+  }
+  current = Math.floor(Math.random() * words.length);
+  showCard();
+}
+</script>
+
+</body>
+</html>
